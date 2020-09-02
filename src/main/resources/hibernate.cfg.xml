@@ -1,0 +1,15 @@
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+
+        <property name="connection.url">jdbc:postgresql://localhost/courses_database</property> <!-- BD Mane -->
+        <property name="connection.driver_class">org.postgresql.Driver</property> <!-- DB Driver -->
+        <property name="connection.username">rs</property> <!-- DB User -->
+        <property name="hibernate.hbm2ddl.auto">update</property>
+        <property name="show_sql">true</property> <!-- Show SQL in console -->
+
+    </session-factory>
+</hibernate-configuration>
