@@ -1,12 +1,20 @@
 package local.nix.programming.courses.repository;
 
-import local.nix.programming.courses.jdbc.util.JdbcConnectionUtil;
 
-import java.sql.*;
+import local.nix.programming.courses.entity.Group;
+import local.nix.programming.courses.hibernate.util.HibernateSessionFactoryUtil;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
+
+
+import java.math.BigInteger;
+import java.util.List;
 
 public class TeacherRepository {
 
-    private static Connection connection = JdbcConnectionUtil.getConnection();
+    private static SessionFactory sessionFactory = HibernateSessionFactoryUtil.getSessionFactory();
 
     public static void getInformationAboutTheMostSuccessfulGroup(Long id) {
         String query = "select groups.id as group_id, courses.name as course_name\n" +
@@ -21,20 +29,29 @@ public class TeacherRepository {
 
         StringBuilder sb = new StringBuilder();
 
-        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-            preparedStatement.setLong(1, id);
-            ResultSet rs = preparedStatement.executeQuery();
+        Session session = sessionFactory.openSession();
+        Transaction transaction = session.beginTransaction();
 
-            if (rs != null) {
-                while (rs.next()) {
-                    sb.append("Group_id: " + rs.getLong("group_id") + "\n" +
-                            "Course_name: " + rs.getString("course_name"));
-                }
-            }
-        } catch (SQLException throwables) {
-            throwables.printStackTrace();
+        try {
+            Query q = session.createNativeQuery(query);
+            q.setParameter(1, id);
+
+            List<Object[]> result = q.getResultList();
+            result.stream().forEach((record) -> {
+                Long ident = ((BigInteger) record[0]).longValue();
+                String coursetName = (String) record[1];
+                sb.append("Group_id: " + ident + "\n" +
+                        "Course_name: " + coursetName);
+            });
+            transaction.commit();
+
+        } catch (Exception e) {
+            transaction.rollback();
+            e.printStackTrace();
         }
 
         System.out.println(sb);
+
+
     }
 }
