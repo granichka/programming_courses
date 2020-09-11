@@ -1,14 +1,22 @@
 package local.nix.programming.courses.repository;
 
 
-import local.nix.programming.courses.jdbc.util.JdbcConnectionUtil;
+import local.nix.programming.courses.hibernate.util.HibernateSessionFactoryUtil;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
 
+import javax.persistence.TemporalType;
+import java.math.BigInteger;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 
 public class StudentRepository {
 
-        private static Connection connection = JdbcConnectionUtil.getConnection();
+        private static SessionFactory sessionFactory = HibernateSessionFactoryUtil.getSessionFactory();
 
         public static void getInformationAboutNearestLesson(Long id) {
                 String query = "select lessons.id as lesson_id, date, time, topics.name as topic, teachers.name as teacher\n" +
@@ -19,28 +27,44 @@ public class StudentRepository {
                         "where date > (?) and students.id = (?)\n" +
                         "order by date\n" +
                         "limit 1;";
+
                 StringBuilder sb = new StringBuilder();
 
-                try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-                        LocalDate currentDate = LocalDate.now();
-                        preparedStatement.setDate(1, Date.valueOf(currentDate));
-                        preparedStatement.setLong(2, id);
-                        ResultSet rs = preparedStatement.executeQuery();
+                Session session = sessionFactory.openSession();
+                Transaction transaction = session.beginTransaction();
 
-                        if (rs != null) {
-                                while (rs.next()) {
-                                        sb.append("Lesson_id: " + rs.getLong("lesson_id") + "\n" +
-                                                "Date: " + rs.getDate("date") + "\n" +
-                                                "Time: " + rs.getTime("time") + "\n" +
-                                                "Topic: " + rs.getString("topic") + "\n" +
-                                                "Teacher: " + rs.getString("teacher"));
-                                }
-                        }
-                } catch (SQLException throwables) {
-                        throwables.printStackTrace();
+                try {
+                        Query q = session.createNativeQuery(query);
+                        LocalDate currentDate = LocalDate.now();
+                        q.setParameter(1, Date.valueOf(currentDate), TemporalType.DATE);
+                        q.setParameter(2, id);
+
+                        List<Object[]> result = q.getResultList();
+                        result.stream().forEach((record) -> {
+                                Long ident = ((BigInteger) record[0]).longValue();
+                                Date date = (Date) record[1];
+                                Time time = (Time) record[2];
+                                String topic = (String) record[3];
+                                String teacher = (String) record[4];
+
+                                sb.append("Lesson_id: " + ident + "\n" +
+                                                "Date: " + date + "\n" +
+                                                "Time: " + time + "\n" +
+                                                "Topic: " + topic + "\n" +
+                                                "Teacher: " + teacher);
+
+
+                        });
+                        transaction.commit();
+
+                } catch (Exception e) {
+                        transaction.rollback();
+                        e.printStackTrace();
                 }
 
                 System.out.println(sb);
+
+
         }
 
 
